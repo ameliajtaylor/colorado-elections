@@ -1,0 +1,73 @@
+---
+title: "County Elections Audit"
+author: "Amelia Taylor"
+date: "November 18, 2015"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Pilot Study for County Elections
+
+Many states are turning to mail in ballots for elections.  Often (if not always) these mail-in ballots are determined to be valid by a signature (among other information) and the validity of signatures is determined by a signature judge.  
+
+Recently, Colorado decided to begin auditing its judges and some counties are interested in what a statistically sound approach to sampling these audits would be and want to know what conclusions they might make from these audits. This is a summary of my discussions with them and the work I did for them.  
+
+## How many ballots need to be audited?
+
+First, we need to set up the problem just a bit more.  We want to know, for each judge, what their error rate.  That is, we want to know the proportion of ballots they incorrectly judged (they may judge a signature good or bad, we are not interested in this, but whether or not their judgement was correct).  So we will refer to the proportion we are looking to estimate as the error rate.  
+
+To determine how many ballots need to be audited to estimate the error rate, depends on several important items.
+1. The desired confidence interval desired, e.g. 95% vs. 99%.
+2. The desired margin of error (or "effect"), that is how wide does one want the confidence interval to be (margin of error is half the width of the interval, so these are not the same, but related questions). Or another way of saying this is how much variance away from the expected error rate are we willing to tolerate.
+3. The expected error rate.  
+
+In talking with the elections office they were interested in knowing the sample size needed for both 95% and 99% confidence intervals so that they could make their own decisions about what sample size made sense for them given the associated cost. 
+
+I also ran the computation for a few different margins of error.  We agreed that a margin of error of 0.05 or less was important.  
+
+Finally, they estimated the error rate to be 0.1 or 1 in 10, so I used that value in the computations.  
+
+The formula for computation of the size of the sample, is then given by the function below where Z is the Z-score corresponding to the desired confidence, p is the estimated proportion and d is the desired margin of error --- I intentionally used the same letters typically used in these formulas, for example if one searches online. This function is not for just any parameter, but a population proportion, which is what we are interested in here --- the proportion of incorrectly judged signatures by a particular judge.  
+
+```{r}
+n <- function(p,d,z) {
+  (p*(1-p)*(z^2))/(d)^2}
+
+# 95% CI with a margin of error of 0.05 and 0.025 respectively and then testing for a lower error rate.  
+n(.1,.05,1.96)
+n(.1,.025,1.96)
+n(.05,.025,1.96)
+
+# 99% CI with a margin of error of 0.05 and 0.025 respectively and then testing for a lower error rate.
+n(.1,.05,2.58)
+n(.1,.025,2.58)
+n(.05,.025,2.58)
+```
+
+We see that the margin of error affects this computation with the estimated most, then the choice of confidence interval and that, within a small range, the choise of estimated error rate does not change the sample size significantly.  However, it can, because if it is much smaller than the 0.1 estimate then the margin of error needs to be much smaller (to stay greater than 0, assuming we think the number is not 0) and that can blow up the sample size.  
+
+## The results of the study
+
+First, note that I am not including any of the actual data here as I do not have permission to do so publicly.  The key summary statistics (error rates, etc) that are relevant to this discussion, I do have permission to include.  
+
+The elections office audited 500 ballots for 7 judges and 420 for the eigth judge.  The reported error rates from the audit were very small withthe largest one being 0.008 or 0.8% rather than the estimate of 0.1 or 10%.  This means that to have a confidence interval that does not include 0, the sample would have to have been quite large:
+```{r}
+n(0.008, 0.007, 1.96)
+n(0.004, 0.003, 1.96)
+n(0.002, 0.001, 1.96)
+```
+The first one is realistic, but the latter two are not due to cost, but all are larger than the sample sizes used, so the confidence interval for all judges includes 0 (and even some negative numbers).  More importantly, the formulas we are using assume that the product of the proportion observed and the sample size is at least 5 and 10 or 15 is more conservative.  That is not the case here, so computing a traditional confidence interval is not appropriate here.  
+Furthermore, some judges were found to have 100% accuracy in the audit sample, and the only way to say anything statistically formal about the 100% judges, is to have sampled all of the ballots, which is clearly not realistic, or we would not need to be doing statistics.  
+
+One thing we can get from these data is the probability that given a ballot was rejected by the auditor, it should have actually been rejected (and similarly for accepted) as we have a second level of analysis on the auditors. The total number of rejected ballots was 9 and the number actually rejected was 3, so that probability is .3 or 30%. Thus given that an auditor pulled a ballot, only 1/3 of the time was it actually wrong. This along with the very small number of Auditor rejected ballots suggests that the judges are very accurate. 
+
+Late in the process, I found out that the sample was not random as it was all taken early in the process and may have had further flaws.  So the insights I provided them follow.
+
+1. You need to ensure that your sample is truly random.  This includes sampling across all days and times the judges are working.  If you need help designing a mechanism for ensuring a random sample for the auditor, please let me know.  
+
+2. Assuming a random sample, we now have the data to know that to evaluate the judges you must have large sample sizes.  To establish an effect for 6 of the 9 judges, you would need at least 7700. And for the judges that are 100% accurate, you can still only know that they were 100% accurate on those 7700 ballots. However, since the ballots audited in this study were all taking early in the judges work and it seems reasonable to expect they will make more mistakes later in the process, the observed error rate for a truly random sample is likely to be at least a little larger than what we observed.  If it is even 0.5% then the sample could be as small as 1200 to see an effect with 95% confidence.  
+
+3. Because of the way the data turned out, you will have to rely on your own sense of probability to make decisions and statements about accuracy for this particular round of ballots. You have a fair amount of data by most standards, and your accuracy percentages are all very high (very low error rates). My personal experience with probability leads me, personally, to trust your judges accuracy over the full set of ballots they judged based on the sample, especially given how much of an art, rather than science, this process is. Because of how the numbers turned out (always a possibility when designing and then executing a study with no prior data of any kind) we can’t make any traditional statistical statements like, “we are 95% confident the true error rate is between blah and blah .”
